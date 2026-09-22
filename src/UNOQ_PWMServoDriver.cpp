@@ -425,13 +425,17 @@ bool UNOQ_PWMServoDriver::_claim(uint8_t num) {
 
 	const int hw = unoq_hw_pwm_index((pin_size_t)num);
 	if (hw >= 0) {
-		if (!pwm_is_ready_dt(&unoq_hw_pwm[hw])) {
-			_claimResult[num] = -1; /* the PWM device itself is not ready */
-			return false;
-		}
-		/* Route the pin to the timer channel, the same way analogWrite() does. */
+		/* Order matters: the PWM nodes are declared with "zephyr,deferred-init",
+		 * so the device is NOT initialised at boot. The core's pinctrl helper
+		 * both initialises it and routes the pin, which is why analogWrite()
+		 * calls it *before* pwm_is_ready_dt(). Checking readiness first would
+		 * always fail and the channel would silently stay dead. */
 		_pinmuxResult[num] = (int16_t)unoq_pwm_apply_pinmux((pin_size_t)num,
 														   unoq_hw_pwm[hw].dev, (size_t)hw);
+		if (!pwm_is_ready_dt(&unoq_hw_pwm[hw])) {
+			_claimResult[num] = -1; /* still not usable after the init attempt */
+			return false;
+		}
 	} else {
 		/* Plain GPIO: the core's pinMode() is all that is needed, and it is the
 		 * only portable call - the older core's internal pinmux helper is gone
