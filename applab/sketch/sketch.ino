@@ -65,6 +65,28 @@ void setup() {
 }
 
 void loop() {
+	/* Heartbeat.
+	 *
+	 * On the UNO Q the sketch's console is the router Monitor, and Monitor
+	 * writes are only delivered while something is actually listening. A
+	 * report printed once from setup() therefore lands before App Lab or
+	 * `arduino-app-cli monitor` has attached and is silently dropped, which
+	 * looks exactly like a dead board. Repeating it keeps the output
+	 * observable no matter when the monitor attaches. */
+	static uint32_t last_report = 0;
+	if (millis() - last_report >= 5000) {
+		last_report = millis();
+		Serial.print("alive, uptime ");
+		Serial.print(millis() / 1000);
+		Serial.print(" s, freq ");
+		Serial.print(pwm.getPWMFreq());
+		Serial.print(" Hz, hardware: D9=");
+		Serial.print(UNOQ_PWMServoDriver::isHardwarePWM(9) ? "yes" : "no");
+		Serial.print(" D4=");
+		Serial.print(UNOQ_PWMServoDriver::isHardwarePWM(4) ? "yes" : "no");
+		Serial.println();
+	}
+
 	/* Sweep both servos in opposite directions. */
 	for (int angle = 0; angle <= 180; angle += 2) {
 		servoA.write(angle);
