@@ -101,6 +101,24 @@ Arduino pin number**. `setPin(13, …)` drives D13.
 * Core: Arduino Zephyr core (tested against `arduino:zephyr` 0.54.1)
 * Both `link_mode=dynamic` (default) and `link_mode=static` build cleanly.
 
+## Installing
+
+The library is a plain Arduino library; drop it into the user library folder:
+
+```
+~/Arduino/libraries/UNOQ_PWMServoDriver/      # on the board
+%USERPROFILE%\Documents\Arduino\libraries\    # on Windows
+```
+
+> **App Lab gotcha.** An App Lab `sketch/` folder normally ships a
+> `sketch.yaml`. Its presence switches `arduino-cli` into *profile mode*, and
+> profile mode resolves libraries only from the profile's `libraries:` list —
+> it does **not** scan `~/Arduino/libraries`, so the include fails with
+> `fatal error: UNOQ_PWMServoDriver.h: No such file or directory`. Either
+> remove the file (the default profile does scan the user library folder) or
+> publish the library and pin it in the profile. `deploy.ps1` removes it for
+> you.
+
 ## Examples
 
 * `AllPinsFade` — breathes PWM across every header pin and prints the engine split.

@@ -40,6 +40,13 @@ Write-Host '==> 上传库'
 Write-Host '==> 上传 App Lab 应用'
 & scp @sshOpts -r applab/app.yaml applab/README.md applab/.gitignore applab/python applab/sketch "${Device}:$appRoot/"
 
+# An App Lab sketch folder ships a sketch.yaml, which puts arduino-cli into
+# profile mode. Profile mode does NOT scan the user library directory, so the
+# library would not be found there; removing it makes the build fall back to
+# the default profile, which does discover ~/Arduino/libraries.
+Write-Host '==> 移除远程 sketch.yaml（否则 profile 模式找不到用户库）'
+ssh @sshOpts $Device "rm -f $appRoot/sketch/sketch.yaml"
+
 Write-Host '==> 校验'
 ssh @sshOpts $Device "find $libRoot $appRoot -type f | sort"
 
