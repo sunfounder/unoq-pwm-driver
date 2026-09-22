@@ -13,11 +13,15 @@
 
 UNOQ_PWMServoDriver pwm;
 
-/* Every pin broken out on the UNO Q headers. */
+/* Every pin broken out on the UNO Q headers, except D0 and D1.
+ *
+ * D0/D1 are USART1, which is the very port this sketch prints on. Driving them
+ * as PWM would take the pin away from the UART and the output would go silent,
+ * so they are deliberately skipped. See the header list in the README. */
 const uint8_t headerPins[] = {
-	0,  1,	2,  3,	4,  5,	6,  7,	8,  9,	10, 11, 12, 13, /* D0..D13 */
-	14, 15, 16, 17, 18, 19,									   /* A0..A5  */
-	20, 21													   /* D20/D21 */
+	2,  3,	4,  5,	6,  7,	8,  9,	10, 11, 12, 13, /* D2..D13 (D0/D1 = Serial) */
+	14, 15, 16, 17, 18, 19,						   /* A0..A5  */
+	20, 21										   /* D20/D21 */
 };
 const size_t headerPinCount = sizeof(headerPins) / sizeof(headerPins[0]);
 
