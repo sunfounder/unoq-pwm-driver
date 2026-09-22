@@ -41,7 +41,7 @@
   1 us resolution at any frequency.
 */
 
-#include "UNOQ_PWMServoDriver.h"
+#include <UNOQ_PWMServoDriver.h>
 
 UNOQ_PWMServoDriver pwm;
 
@@ -118,4 +118,3 @@ void loop() {
 		Serial.println(pwm.softwareChannelCount());
 	}
 }
-
