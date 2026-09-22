@@ -103,21 +103,27 @@ Arduino pin number**. `setPin(13, …)` drives D13.
 
 ## Installing
 
-The library is a plain Arduino library; drop it into the user library folder:
+The canonical library lives in `src/` and is a plain Arduino library — drop it
+into the user library folder for general use:
 
 ```
 ~/Arduino/libraries/UNOQ_PWMServoDriver/      # on the board
 %USERPROFILE%\Documents\Arduino\libraries\    # on Windows
 ```
 
-> **App Lab gotcha.** An App Lab `sketch/` folder normally ships a
-> `sketch.yaml`. Its presence switches `arduino-cli` into *profile mode*, and
-> profile mode resolves libraries only from the profile's `libraries:` list —
-> it does **not** scan `~/Arduino/libraries`, so the include fails with
-> `fatal error: UNOQ_PWMServoDriver.h: No such file or directory`. Either
-> remove the file (the default profile does scan the user library folder) or
-> publish the library and pin it in the profile. `deploy.ps1` removes it for
-> you.
+> **App Lab gotcha.** An App Lab `sketch/` folder must keep its `sketch.yaml`,
+> because App Lab only recognises apps that carry one — *and* its presence
+> switches `arduino-cli` into **profile mode**, which resolves libraries only
+> from the profile's `libraries:` list and does **not** scan
+> `~/Arduino/libraries`. A named local library cannot be pinned in the profile
+> either (`Library '…' not found`), so the App carries the library sources
+> inside its own sketch folder, where Arduino compiles them and puts them on the
+> include path. `deploy.ps1` performs that copy; the duplicated files are
+> git-ignored and `src/` stays the single source of truth.
+
+One consequence: inside the App Lab sketch the include uses quotes
+(`#include "UNOQ_PWMServo.h"`), because angle-bracket lookups only search the
+library directories.
 
 ## Examples
 

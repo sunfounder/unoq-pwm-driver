@@ -10,7 +10,7 @@
     * sweeps one servo on a hardware-PWM pin and one on a software-only pin
 */
 
-#include <UNOQ_PWMServo.h>
+#include "UNOQ_PWMServo.h"
 
 UNOQ_PWMServoDriver pwm;
 UNOQ_PWMServo servoA; /* D9 - has a timer channel  */
@@ -88,3 +88,4 @@ void loop() {
 		delay(6);
 	}
 }
+

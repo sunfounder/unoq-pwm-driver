@@ -15,3 +15,11 @@ build/
 .vscode/
 .idea/
 *.swp
+
+# Library sources copied into the App Lab sketch by deploy.ps1.
+# The canonical copies live in src/.
+applab/sketch/UNOQ_PWMPins.h
+applab/sketch/UNOQ_PWMServo.h
+applab/sketch/UNOQ_PWMServo.cpp
+applab/sketch/UNOQ_PWMServoDriver.h
+applab/sketch/UNOQ_PWMServoDriver.cpp
