@@ -1,0 +1,6 @@
+# The UNO Q runs Linux and its toolchain expects LF; keep the repository
+# normalised so a Windows checkout still deploys cleanly.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.pdf binary
