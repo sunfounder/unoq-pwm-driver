@@ -20,16 +20,31 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pwm.h>
 
-/* Forward declaration of the Arduino Zephyr core helper that resets the pinmux
- * of a pin to a given peripheral. The core declares it with C linkage inside
- * zephyrInternal.h, so the same linkage has to be used here or the symbol will
- * not resolve at link time.                                                  */
+/* ------------------------------------------------------------------------- */
+/* Pinmux backend.                                                            */
+/*                                                                            */
+/* The Arduino Zephyr core changed this mechanism between releases:           */
+/*   * up to 0.54.1 - a single helper, _reinit_peripheral_if_needed()          */
+/*   * from 0.90.0  - a dedicated pinctrl module (zephyrPinctrl.h) that can    */
+/*                    apply the "arduino" pinctrl state per channel; the old  */
+/*                    helper was removed entirely.                             */
+/* Both are supported here so the library builds against either core.          */
+/* ------------------------------------------------------------------------- */
+#if defined(__has_include)
+#if __has_include("zephyrPinctrl.h")
+#include "zephyrPinctrl.h"
+#define UNOQ_PWM_HAVE_PINCTRL_MODULE 1
+#endif
+#endif
+
+#ifndef UNOQ_PWM_HAVE_PINCTRL_MODULE
 #ifdef __cplusplus
 extern "C" {
 #endif
 void _reinit_peripheral_if_needed(pin_size_t pin, const struct device *dev);
 #ifdef __cplusplus
 }
+#endif
 #endif
 
 /* ------------------------------------------------------------------------- */
@@ -84,6 +99,30 @@ static inline int unoq_hw_pwm_index(pin_size_t pin) {
 		}
 	}
 	return -1;
+}
+
+/**
+ * @brief Route @p pin to the peripheral @p dev, applying the board's "arduino"
+ *        pinctrl state.
+ *
+ * @param pin      Arduino pin number.
+ * @param dev      Peripheral that should own the pin (the PWM device).
+ * @param hw_index Index into unoq_hw_pwm[] for this channel.
+ *
+ * On cores that ship the pinctrl module the per-channel ordinal is derived with
+ * the core's own helper, exactly as analogWrite() does. On older cores the
+ * single legacy helper is called instead.
+ */
+static inline void unoq_pwm_apply_pinmux(pin_size_t pin, const struct device *dev,
+										 size_t hw_index) {
+#if defined(UNOQ_PWM_HAVE_PINCTRL_MODULE)
+	(void)pin;
+	(void)zephyr::arduino::init_dev_apply_channel_pinctrl(
+		dev, zephyr::arduino::state_pin_index_from_spec_index(unoq_hw_pwm, hw_index));
+#else
+	(void)hw_index;
+	_reinit_peripheral_if_needed(pin, dev);
+#endif
 }
 
 #endif /* UNOQ_PWMPINS_H */

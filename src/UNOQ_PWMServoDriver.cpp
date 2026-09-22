@@ -406,10 +406,12 @@ bool UNOQ_PWMServoDriver::_claim(uint8_t num) {
 		if (!pwm_is_ready_dt(&unoq_hw_pwm[hw])) {
 			return false;
 		}
-		/* Same pinmux handling the core does in analogWrite(). */
-		_reinit_peripheral_if_needed((pin_size_t)num, unoq_hw_pwm[hw].dev);
+		/* Route the pin to the timer channel, the same way analogWrite() does. */
+		unoq_pwm_apply_pinmux((pin_size_t)num, unoq_hw_pwm[hw].dev, (size_t)hw);
 	} else {
-		_reinit_peripheral_if_needed((pin_size_t)num, nullptr);
+		/* Plain GPIO: the core's pinMode() is all that is needed, and it is the
+		 * only portable call - the older core's internal pinmux helper is gone
+		 * from newer releases. */
 		pinMode((pin_size_t)num, OUTPUT);
 		(void)gpio_pin_set_dt(&unoq_gpio[num], 0);
 		sw_chan[num].active = true;
