@@ -37,7 +37,7 @@
   confirm timer behaviour without the software engine in the picture.
 */
 
-#include "UNOQ_PWMServoDriver.h"
+#include <UNOQ_PWMServoDriver.h>
 
 UNOQ_PWMServoDriver pwm;
 
@@ -104,4 +104,3 @@ void loop() {
 		Serial.println(" hardware channels");
 	}
 }
-
