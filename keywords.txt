@@ -1,0 +1,51 @@
+#######################################
+# Syntax Coloring Map For UNOQ_PWMServoDriver
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+UNOQ_PWMServoDriver	KEYWORD1
+UNOQ_PWMServo	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+begin	KEYWORD2
+end	KEYWORD2
+reset	KEYWORD2
+sleep	KEYWORD2
+wakeup	KEYWORD2
+setPWMFreq	KEYWORD2
+setPWM	KEYWORD2
+setPin	KEYWORD2
+getPWM	KEYWORD2
+writeMicroseconds	KEYWORD2
+readPrescale	KEYWORD2
+setOscillatorFrequency	KEYWORD2
+getOscillatorFrequency	KEYWORD2
+channelCount	KEYWORD2
+isHardwarePWM	KEYWORD2
+getPWMFreq	KEYWORD2
+attach	KEYWORD2
+detach	KEYWORD2
+attached	KEYWORD2
+softwareTickUs	KEYWORD2
+softwareChannelCount	KEYWORD2
+refresh	KEYWORD2
+write	KEYWORD2
+read	KEYWORD2
+readMicroseconds	KEYWORD2
+driver	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+UNOQ_PWM_DEFAULT_FREQ	LITERAL1
+UNOQ_PWM_RESOLUTION	LITERAL1
+UNOQ_PWM_PIN_COUNT	LITERAL1
+UNOQ_HW_PWM_COUNT	LITERAL1
+SERVO_PERIOD_US	LITERAL1
+SERVO_MIN_US	LITERAL1
+SERVO_MAX_US	LITERAL1
+INVALID_SERVO	LITERAL1

@@ -1,0 +1,17 @@
+# Build / probe scratch
+.probe/
+build/
+*.o
+*.d
+*.elf
+*.bin
+*.hex
+*.map
+
+# Arduino sketch build output
+**/build/
+
+# Editors
+.vscode/
+.idea/
+*.swp

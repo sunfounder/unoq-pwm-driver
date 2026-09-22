@@ -1,0 +1,3 @@
+name: unoq-pwm-driver
+description: Full-pin PWM / servo driver demo — drives PWM on every Arduino UNO Q pin via hardware timers where available and a software engine everywhere else.
+icon: "〜"
