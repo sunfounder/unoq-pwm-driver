@@ -163,6 +163,9 @@ UNOQ_PWMServoDriver::UNOQ_PWMServoDriver()
 		_on[i] = 0;
 		_off[i] = 0;
 		_claimed[i] = false;
+		_claimResult[i] = 0;
+		_pinmuxResult[i] = 0;
+		_pwmResult[i] = 0;
 	}
 }
 
@@ -178,11 +181,26 @@ uint32_t UNOQ_PWMServoDriver::softwareTickUs() {
 	return 1000000UL / (uint32_t)CONFIG_SYS_CLOCK_TICKS_PER_SEC;
 }
 
+int UNOQ_PWMServoDriver::lastPinmuxResult(uint8_t num) const {
+	return (num < UNOQ_PWM_PIN_COUNT) ? _pinmuxResult[num] : 0;
+}
+
+int UNOQ_PWMServoDriver::lastPwmResult(uint8_t num) const {
+	return (num < UNOQ_PWM_PIN_COUNT) ? _pwmResult[num] : 0;
+}
+
+bool UNOQ_PWMServoDriver::claimFailed(uint8_t num) const {
+	return (num < UNOQ_PWM_PIN_COUNT) ? (_claimResult[num] != 0) : true;
+}
+
 bool UNOQ_PWMServoDriver::begin(float freq) {
 	for (size_t i = 0; i < UNOQ_PWM_PIN_COUNT; i++) {
 		_on[i] = 0;
 		_off[i] = 0;
 		_claimed[i] = false;
+		_claimResult[i] = 0;
+		_pinmuxResult[i] = 0;
+		_pwmResult[i] = 0;
 		sw_chan[i].active = false;
 		sw_chan[i].high_us = 0;
 	}
@@ -401,13 +419,19 @@ bool UNOQ_PWMServoDriver::_claim(uint8_t num) {
 		return true;
 	}
 
+	_claimResult[num] = 0;
+	_pinmuxResult[num] = 0;
+	_pwmResult[num] = 0;
+
 	const int hw = unoq_hw_pwm_index((pin_size_t)num);
 	if (hw >= 0) {
 		if (!pwm_is_ready_dt(&unoq_hw_pwm[hw])) {
+			_claimResult[num] = -1; /* the PWM device itself is not ready */
 			return false;
 		}
 		/* Route the pin to the timer channel, the same way analogWrite() does. */
-		unoq_pwm_apply_pinmux((pin_size_t)num, unoq_hw_pwm[hw].dev, (size_t)hw);
+		_pinmuxResult[num] = (int16_t)unoq_pwm_apply_pinmux((pin_size_t)num,
+														   unoq_hw_pwm[hw].dev, (size_t)hw);
 	} else {
 		/* Plain GPIO: the core's pinMode() is all that is needed, and it is the
 		 * only portable call - the older core's internal pinmux helper is gone
@@ -440,7 +464,9 @@ void UNOQ_PWMServoDriver::_applyHardware(uint8_t num, uint32_t high_us, uint32_t
 	if (UNOQ_PWM_FLAG_INVERTED(idx)) {
 		pulse_ns = period_ns - pulse_ns;
 	}
-	(void)pwm_set_dt(&unoq_hw_pwm[idx], period_ns, pulse_ns);
+	/* Keep the result: an out-of-range period or an unroutable channel shows up
+	 * here and nowhere else, which otherwise looks exactly like a dead pin. */
+	_pwmResult[num] = (int16_t)pwm_set_dt(&unoq_hw_pwm[idx], period_ns, pulse_ns);
 }
 
 void UNOQ_PWMServoDriver::_swApply(uint8_t num, uint32_t high_us) {

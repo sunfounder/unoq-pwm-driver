@@ -112,16 +112,18 @@ static inline int unoq_hw_pwm_index(pin_size_t pin) {
  * On cores that ship the pinctrl module the per-channel ordinal is derived with
  * the core's own helper, exactly as analogWrite() does. On older cores the
  * single legacy helper is called instead.
+ * @return 0 on success, a negative errno when the core's pinctrl helper failed.
  */
-static inline void unoq_pwm_apply_pinmux(pin_size_t pin, const struct device *dev,
-										 size_t hw_index) {
+static inline int unoq_pwm_apply_pinmux(pin_size_t pin, const struct device *dev,
+										size_t hw_index) {
 #if defined(UNOQ_PWM_HAVE_PINCTRL_MODULE)
 	(void)pin;
-	(void)zephyr::arduino::init_dev_apply_channel_pinctrl(
+	return zephyr::arduino::init_dev_apply_channel_pinctrl(
 		dev, zephyr::arduino::state_pin_index_from_spec_index(unoq_hw_pwm, hw_index));
 #else
 	(void)hw_index;
 	_reinit_peripheral_if_needed(pin, dev);
+	return 0;
 #endif
 }
 

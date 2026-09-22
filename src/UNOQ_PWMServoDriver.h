@@ -155,6 +155,22 @@ class UNOQ_PWMServoDriver {
 	/** @brief Granularity of the software PWM engine, in microseconds. */
 	static uint32_t softwareTickUs();
 
+	/* --------------------------- diagnostics ------------------------------ */
+
+	/**
+	 * @brief Result of the last pinmux apply for a channel.
+	 *
+	 * 0 means "the core accepted it", a negative value is the errno the core's
+	 * pinctrl helper returned. Without this an unroutable pin fails silently.
+	 */
+	int lastPinmuxResult(uint8_t num) const;
+
+	/** @brief Result of the last pwm_set_dt() for a channel (0 = ok, else errno). */
+	int lastPwmResult(uint8_t num) const;
+
+	/** @brief True when the channel could not be claimed at all. */
+	bool claimFailed(uint8_t num) const;
+
 	/** @brief Number of channels currently served by software PWM. */
 	uint16_t softwareChannelCount() const { return _sw_count; }
 
@@ -179,6 +195,11 @@ class UNOQ_PWMServoDriver {
 
 	/* Number of claimed channels currently served by software PWM. */
 	uint16_t _sw_count;
+
+	/* Diagnostics: why a channel did or did not end up driving its pin. */
+	int16_t _claimResult[UNOQ_PWM_PIN_COUNT];
+	int16_t _pinmuxResult[UNOQ_PWM_PIN_COUNT];
+	int16_t _pwmResult[UNOQ_PWM_PIN_COUNT];
 
 	bool _claim(uint8_t num);
 	bool _writeChannel(uint8_t num, uint32_t high_us, uint32_t period_us);
