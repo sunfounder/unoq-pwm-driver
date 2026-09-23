@@ -27,7 +27,7 @@
   Either way the scope will show a 1 kHz square wave on all fourteen pins.
 */
 
-#include "UNOQ_PWMServoDriver.h"
+#include <UNOQ_PWMServoDriver.h>
 
 UNOQ_PWMServoDriver pwm;
 
@@ -99,4 +99,3 @@ void loop() {
 		Serial.println(" channels");
 	}
 }
-
