@@ -17,9 +17,7 @@ build/
 *.swp
 
 # Library sources copied into the App Lab sketch by deploy.ps1.
-# The canonical copies live in src/.
-applab/sketch/UNOQ_PWMPins.h
-applab/sketch/UNOQ_PWMServo.h
-applab/sketch/UNOQ_PWMServo.cpp
-applab/sketch/UNOQ_PWMServoDriver.h
-applab/sketch/UNOQ_PWMServoDriver.cpp
+# The canonical copies live in src/. Everything the library ships starts with
+# UNOQ_, so a glob here cannot miss a newly added file.
+applab/sketch/UNOQ_*.h
+applab/sketch/UNOQ_*.cpp
