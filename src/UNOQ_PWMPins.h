@@ -83,6 +83,26 @@ static const struct pwm_dt_spec unoq_hw_pwm[UNOQ_HW_PWM_COUNT] = {
 static const pin_size_t unoq_hw_pwm_pin[UNOQ_HW_PWM_COUNT] = {
 	DT_FOREACH_PROP_ELEM(DT_PATH(zephyr_user), pwm_pin_gpios, UNOQ_PWM_PIN_OF)};
 
+/* ------------------------------------------------------------------------- */
+/* On-board RGB LEDs.                                                         */
+/*                                                                            */
+/* "builtin-led-gpios" lists the six MCU-side LED channels in the order       */
+/*   LED3_R, LED3_G, LED3_B, LED4_R, LED4_G, LED4_B                          */
+/* which is the same order the core's own LED3_R..LED4_B macros use.          */
+/* LED1 and LED2 are on the Linux side of the UNO Q and are not reachable     */
+/* from a sketch at all.                                                      */
+/* ------------------------------------------------------------------------- */
+#define UNOQ_BUILTIN_LED_COUNT DT_PROP_LEN(DT_PATH(zephyr_user), builtin_led_gpios)
+
+/* Reuses the core's own device-tree lookup, exactly as DIGITAL_PIN_GPIOS_FIND_NODE
+ * does for the LED3_R..LED4_B macros in variant.h.                            */
+#define UNOQ_LED_PIN_OF(n, p, i)                                                                   \
+	DIGITAL_PIN_GPIOS_FIND_PIN(DT_REG_ADDR(DT_PHANDLE_BY_IDX(DT_PATH(zephyr_user), p, i)),         \
+							   DT_PHA_BY_IDX(DT_PATH(zephyr_user), p, i, pin)),
+
+static const pin_size_t unoq_builtin_led_pin[UNOQ_BUILTIN_LED_COUNT] = {
+	DT_FOREACH_PROP_ELEM(DT_PATH(zephyr_user), builtin_led_gpios, UNOQ_LED_PIN_OF)};
+
 /* Some header pins are wired to an inverted timer output (the 'N' channels of
  * TIM1/TIM8, and the common-anode RGB LEDs). For those, a duty cycle that the
  * caller expresses as "time spent HIGH" has to be converted to the inverted

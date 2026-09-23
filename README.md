@@ -29,6 +29,8 @@ and the included servo class is compatible with
 * **1 µs pulse resolution** on timer-backed pins.
 * **Correct handling of inverted outputs** — duty cycle is always expressed as time
   spent HIGH, regardless of how the pin is wired.
+* **On-board RGB LEDs** — both MCU-side LEDs are dimmable through a single call, with
+  the channels resolved from the board devicetree.
 * **Diagnostics** for channels that fail to route.
 
 ## 🚀 Quick start
@@ -130,6 +132,49 @@ prints the whole map.
 The frame is 20 ms (50 Hz) and the default pulse range is 500–2500 µs; both are
 adjustable per `attach()`.
 
+### On-board RGB LEDs
+
+The UNO Q carries four RGB LEDs, but they are split across its two processors:
+
+| LED | Processor | Reachable from a sketch |
+|---|---|---|
+| LED1 | Qualcomm QRB2210 (Linux) | **No** — `arduino-app-cli` uses it as a status indicator |
+| LED2 | Qualcomm QRB2210 (Linux) | **No** — same |
+| LED3 | STM32U585 | **Yes** — hardware PWM |
+| LED4 | STM32U585 | **Yes** — software PWM, still fully dimmable |
+
+```cpp
+#include <UNOQ_PWMRGB.h>
+
+UNOQ_PWMRGB led3(UNOQ_PWMRGB::LED3);
+UNOQ_PWMRGB led4(UNOQ_PWMRGB::LED4);
+
+void setup() {
+  led3.setColor(255, 0, 0);       // red
+  led4.setColor(0x00FF00);        // packed 0xRRGGBB
+  led3.setChannel(UNOQ_PWMRGB::BLUE, 128);   // one channel at half
+  led4.off();
+}
+```
+
+| Method | Description |
+|---|---|
+| `setColor(r, g, b)` | Set the colour, 0–255 per channel. |
+| `setColor(0xRRGGBB)` | Set the colour from a packed value. |
+| `setChannel(channel, value)` | Set a single `RED`, `GREEN` or `BLUE` channel. |
+| `off()` | Switch the LED off. |
+| `begin(freq)` | Claim the channels and set the shared frequency (default 1 kHz). |
+| `pin(channel)` | The Arduino pin number backing a colour channel. |
+| `isHardwarePWM()` | `true` for LED3, `false` for LED4. |
+| `ledCount()` | Number of MCU-side RGB LEDs (2). |
+| `available()` | `false` if the board exposes no `builtin-led-gpios`. |
+
+The channel numbers are read from the board devicetree rather than hard-coded, so on
+the UNO Q they come out as 50/51/52 for LED3 and 53/54/55 for LED4.
+
+> Because LED4 has no timer channel, it is driven by the software PWM engine. That
+> gives it smooth dimming, which `digitalWrite()` on the same pin cannot do.
+
 ## 🧪 Examples
 
 | Example | Description |
@@ -140,6 +185,7 @@ adjustable per `attach()`.
 | `PinCapabilities` | Prints which engine backs each of the 70 channels. |
 | `AllPinsFade` | Fades the header pins and prints the engine split. |
 | `ServoSweep` | Two servos sweeping — one on D9, one on D4. |
+| `LedRGB` | Drives the on-board LED3 and LED4 through the colour wheel. |
 | `HwDiagnostics` | Per-channel device, timer clock and routing results. |
 | `AppLabDemo` | The sketch shipped inside the App Lab app. |
 
@@ -187,6 +233,8 @@ with App Lab ownership of the app.
   arbitrary phase offset.
 * **Pins 67–69 are reserved** for system functions (internal SPI ready, analog switch
   for VREF, BOOT0). Do not drive them.
+* **LED1 and LED2 cannot be driven from a sketch.** They belong to the Linux side of
+  the board; a Python app can still reach them through `Leds.set_led1_color()`.
 * **The software engine runs in interrupt context.** Interrupt load grows with the
   number of distinct pulse widths, not with the number of channels.
 * `Serial` on the UNO Q is the Arduino Router's monitor. Output is only visible while
