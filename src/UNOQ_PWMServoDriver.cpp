@@ -242,6 +242,13 @@ void UNOQ_PWMServoDriver::setPWMFreq(float freq) {
 		_period_us = 1;
 	}
 
+	/* The software engine keeps its own copy of the period. Without this it
+	 * stays stuck at whatever it was initialised with - 20 ms, i.e. 50 Hz -
+	 * and silently ignores every frequency change. On a scope that looks like
+	 * the software channels running at 50 Hz while the hardware ones honour
+	 * the requested frequency. */
+	sw_period_us = _period_us;
+
 	/* Re-program everything that is already running. */
 	for (size_t i = 0; i < UNOQ_PWM_PIN_COUNT; i++) {
 		if (!_claimed[i]) {
@@ -264,6 +271,7 @@ void UNOQ_PWMServoDriver::reset() {
 	}
 	_freq = UNOQ_PWM_DEFAULT_FREQ;
 	_period_us = 20000;
+	sw_period_us = _period_us;
 }
 
 void UNOQ_PWMServoDriver::sleep() {
