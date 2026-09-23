@@ -17,12 +17,17 @@
   refuses to route them to a timer. Driving them as plain GPIO is still
   allowed, which is exactly what the software engine does.
 
-  Whether that costs you the console is the interesting part, and this sketch
+  Whether that costs you the console depends on the core, and this sketch
   answers it from the inside: the report below is printed FIRST, then D0/D1 are
-  claimed. If the heartbeat keeps coming, USART1 is not the console on this
-  core (the sketch console is the router Monitor, which runs over LPUART1 per
-  "arduino,router-serial = <&lpuart1>"). If the heartbeat stops right after the
-  report, D0/D1 really are the console and must be left alone.
+  claimed. On cores 0.90.0 and 1.0.0 the heartbeat keeps printing afterwards,
+  which is the expected result - see below.
+
+    up to 0.54.1  the core labels USART1 as "arduino_serial" and binds Serial
+                  to it, so D0/D1 really were the sketch's console
+    0.90.0+       the UNO Q devicetree adds
+                      arduino,router-serial = <&lpuart1>;
+                  and Serial becomes the Arduino Router's Monitor on LPUART1,
+                  which leaves USART1 - and therefore D0/D1 - free for PWM
 
   Either way the scope will show a 1 kHz square wave on all fourteen pins.
 */
@@ -79,8 +84,9 @@ void setup() {
 		reportChannel(ch);
 	}
 	Serial.println();
-	Serial.println("D0/D1 claimed above. If the heartbeat below keeps printing,");
-	Serial.println("USART1 is NOT the console on this core and D0/D1 are free.");
+	Serial.println("D0/D1 claimed above. On cores 0.90.0 and 1.0.0 the heartbeat");
+	Serial.println("below keeps printing: Serial is the Router Monitor on LPUART1,");
+	Serial.println("so USART1 is free and D0/D1 can be used as ordinary PWM pins.");
 	Serial.println();
 }
 

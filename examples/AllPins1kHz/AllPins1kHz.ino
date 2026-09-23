@@ -13,9 +13,12 @@
   Pins that are deliberately NOT driven
   ---------------------------------------------------------------------------
   D0 / D1  (channels 0, 1)
-      They are USART1 - the port this sketch prints its report on, and the
-      port the Arduino Router uses. Driving them with PWM silences the sketch
-      and breaks the Bridge to the Linux side.
+      USART1_RX/TX in silicon. Up to core 0.54.1 the core bound Serial to
+      USART1, so driving them silenced the sketch. From 0.90.0 the UNO Q sets
+      "arduino,router-serial = <&lpuart1>" and Serial is the Router's Monitor
+      instead, which leaves D0/D1 free - Pins0to13_1kHz drives them on purpose.
+      They are still skipped here so this sketch behaves identically on every
+      core.
 
   channel 67  (PG13)
       Internal SPI ready line towards the Linux side.
@@ -51,7 +54,7 @@ static const uint16_t DUTY = UNOQ_PWM_RESOLUTION / 2; /* 2048 / 4096 = 50 % */
 /** @brief True for channels that are safe to drive in this test. */
 static bool isDrivable(uint16_t ch) {
 	if (ch <= 1) {
-		return false; /* D0/D1 = USART1 = Serial */
+		return false; /* D0/D1 = USART1: Serial on cores up to 0.54.1 */
 	}
 	if (ch >= 67) {
 		return false; /* PG13 / PA2 / PH3: internal system pins */

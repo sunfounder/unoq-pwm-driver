@@ -18,8 +18,10 @@ UNOQ_PWMServo servoB; /* D4 - software PWM only    */
 
 /* Pins broken out on the UNO Q headers, except D0 and D1.
  *
- * D0/D1 are USART1, i.e. the Serial port this sketch reports on. Driving them
- * with PWM would silence the sketch, so they are skipped on purpose. */
+ * D0/D1 are USART1. Up to core 0.54.1 that is where Serial lived, so driving
+ * them silenced the sketch. From 0.90.0 the console is the Arduino Router's
+ * Monitor on LPUART1 and USART1 is free, but they stay skipped here so the demo
+ * behaves the same on every core. */
 const uint8_t headerPins[] = {2,	3,	4,	5,	6,	7,	8,	9,	10, 11,
 							  12, 13, 14, 15, 16, 17, 18, 19, 20, 21};
 const size_t headerPinCount = sizeof(headerPins) / sizeof(headerPins[0]);

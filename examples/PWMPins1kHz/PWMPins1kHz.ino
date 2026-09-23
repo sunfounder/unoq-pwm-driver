@@ -26,7 +26,8 @@
 
   D0, D1 and D4 are NOT in the set and are not driven:
       D0/D1  their timers are disabled in the devicetree ("not usable for
-             PWM until dynamic pin muxing works"); they are USART1 / Serial
+             PWM until dynamic pin muxing works"); they are USART1, which was
+             where Serial lived up to core 0.54.1 and is free from 0.90.0
       D4     has no timer channel at all
 
   Because every channel here is a hardware timer channel, they all keep full
