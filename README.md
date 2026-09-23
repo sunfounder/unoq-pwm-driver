@@ -1,39 +1,10 @@
 # UNOQ_PWMServoDriver
 
-PWM output on **every** pin of the **Arduino UNO Q** — not only the handful of pins
-wired to a hardware timer.
+A PWM pin driver for the **Arduino UNO Q**, developed by **SunFounder**.
 
-The Arduino UNO Q exposes 70 GPIOs to sketches, but only 13 header pins have a
-hardware timer channel. This library gives the remaining pins a PWM output too, so
-`setPWM()`, `setPin()` and `writeMicroseconds()` work on any pin you choose.
-
-The API follows
-[`Adafruit_PWMServoDriver`](https://github.com/adafruit/Adafruit-PWM-Servo-Driver-Library),
-and the included servo class is compatible with
-[`Arduino_HardwareServo`](https://github.com/arduino-libraries/Arduino_HardwareServo).
-
-## 🔌 Compatibility
-
-* **Arduino UNO Q** (`arduino:zephyr:unoq`)
-* Arduino Zephyr core **0.54.1**, **0.90.0**, **1.0.0**
-* Both `link_mode=dynamic` (default) and `link_mode=static`
-
-## ✨ Features
-
-* **PWM on all 70 channels** — hardware timer where one exists, otherwise a software
-  engine, selected automatically and transparently.
-* **Adafruit_PWMServoDriver-compatible API** — existing PCA9685 sketches and
-  documentation stay recognisable.
-* **Servo class with no limit on the number of servos** — channels are limited by
-  pins, not by timers.
-* **1 µs pulse resolution** on timer-backed pins.
-* **Correct handling of inverted outputs** — duty cycle is always expressed as time
-  spent HIGH, regardless of how the pin is wired.
-* **On-board RGB LEDs** — both MCU-side LEDs are dimmable through a single call, with
-  the channels resolved from the board devicetree.
-* **Diagnostics** for channels that fail to route.
-
-## 🚀 Quick start
+It lets a sketch emit PWM on the UNO Q's header pins, including the ones that are
+not connected to a hardware timer, and adds a servo class and an on-board RGB
+helper on top.
 
 ```cpp
 #include <UNOQ_PWMServoDriver.h>
@@ -47,6 +18,109 @@ void setup() {
 }
 ```
 
+A "channel" is an Arduino pin number, so `setPin(9, …)` drives D9. The API follows
+[`Adafruit_PWMServoDriver`](https://github.com/adafruit/Adafruit-PWM-Servo-Driver-Library),
+and the servo class is compatible with
+[`Arduino_HardwareServo`](https://github.com/arduino-libraries/Arduino_HardwareServo).
+
+## 🔌 Compatibility
+
+* **Arduino UNO Q** (`arduino:zephyr:unoq`)
+* Arduino Zephyr core **0.54.1**, **0.90.0**, **1.0.0**
+* Both `link_mode=dynamic` (default) and `link_mode=static`
+
+## ✨ Features
+
+* **PWM on every UNO Q header pin** — 13 on hardware timers, 9 on a software engine.
+  The engine is chosen automatically and the sketch does not have to care.
+* **Adafruit_PWMServoDriver-compatible API** — existing PCA9685 sketches and
+  documentation stay recognisable.
+* **Servo class with no limit on the number of servos** — channels are limited by
+  pins, not by timers.
+* **1 µs pulse resolution** on timer-backed pins.
+* **Correct handling of inverted outputs** — carry on reading duty cycle as the
+  fraction of the period the output is on, whatever the pin is wired to.
+* **On-board RGB LEDs** — both MCU-side LEDs are dimmable from one call.
+* **Diagnostics** for channels that fail to route.
+
+## 📍 Which pins can output PWM
+
+The UNO Q is a two-chip board: a Qualcomm QRB2210 running Linux, and an STM32U585
+that runs your sketch. The board devicetree defines 70 GPIO channels, but only 22 of
+them are broken out on the headers. The rest drive board-internal circuits (the LED
+matrix, the JSPI and JMISC connectors, the SPI ready line, BOOT0) and are not meant
+to be driven directly.
+
+### Hardware PWM — 16 channels across 6 timers
+
+These pins are wired to a real STM32 timer channel. The frequency is exact, the pulse
+resolution is 1 µs, and generating the signal costs no CPU time.
+
+| Timer | Pins | Channels |
+|---|---|---|
+| **TIM1** | D5, D11, D12, D13 | 4 |
+| **TIM2** | D2, D20, D21 | 3 |
+| **TIM3** | D3, D6, D8 | 3 |
+| **TIM4** | D9, D10 | 2 |
+| **TIM5** | LED3 red / green / blue (on-board) | 3 |
+| **TIM8** | D7 | 1 |
+
+That is **13 header pins plus the three LED3 colours**. `isHardwarePWM(pin)` reports
+whether a given pin is one of them.
+
+> The UNO Q silkscreen marks six pins with `~` (D3, D5, D6, D9, D10, D11), matching
+> the UNO R3. The board actually routes 13. Trust `isHardwarePWM()`.
+
+### Software PWM — the remaining header pins
+
+**D0, D1, D4, A0, A1, A2, A3, A4, A5** are not connected to any timer channel, so they
+are driven by a software PWM engine built on a Zephyr kernel timer.
+
+| Pin | Why there is no timer |
+|---|---|
+| D0, D1 | TIM4 channels exist in silicon, but they are not routed in the board devicetree |
+| D4 | PA12 has no timer output channel at all |
+| A0–A5 | not routed |
+
+The engine works at a **100 µs** resolution, so at 50 Hz a frame has 200 steps and at
+1 kHz it has 10. `softwareTickUs()` reports the exact figure.
+
+### The on-board RGB LEDs
+
+The UNO Q carries four RGB LEDs, and they are split across the two processors. This
+is the one place where "all pins" needs a caveat:
+
+| LED | Processor | Can a sketch drive it? |
+|---|---|---|
+| LED1 | QRB2210 (Linux) | **No** — `arduino-app-cli` uses it as a status indicator |
+| LED2 | QRB2210 (Linux) | **No** — same |
+| LED3 | STM32U585 | **Yes** — three hardware PWM channels on TIM5 |
+| LED4 | STM32U585 | **Yes** — no timer, so it uses the software engine |
+
+LED3 and LED4 are therefore part of the count above, even though they are not header
+pins: LED3 contributes three timer channels, LED4 three software channels. Both are
+driven through `UNOQ_PWMRGB`, and because LED4 falls back to the software engine it
+gets smooth dimming rather than simple on/off.
+
+```cpp
+#include <UNOQ_PWMRGB.h>
+
+UNOQ_PWMRGB led3(UNOQ_PWMRGB::LED3);
+UNOQ_PWMRGB led4(UNOQ_PWMRGB::LED4);
+
+void setup() {
+  led3.setColor(255, 0, 0);       // red
+  led4.setColor(0x00FF00);        // packed 0xRRGGBB
+  led3.setChannel(UNOQ_PWMRGB::BLUE, 128);   // one channel at half
+  led4.off();
+}
+```
+
+The LED channel numbers are read from the board devicetree rather than hard-coded, so
+on the UNO Q they come out as 50/51/52 for LED3 and 53/54/55 for LED4.
+
+## 🚀 Quick start
+
 ```cpp
 #include <UNOQ_PWMServo.h>
 
@@ -57,28 +131,6 @@ void setup() {
   servo.write(90);                 // degrees
 }
 ```
-
-## 📍 A channel is a pin
-
-Unlike the PCA9685 — 16 channels behind an I²C expander — **a channel number here is
-an Arduino pin number**. `setPin(13, …)` drives D13. `channelCount()` is 70.
-
-| Channels | Pins | Engine |
-|---|---|---|
-| 0–13 | D0 … D13 | D2, D3, D5–D13 hardware; D0, D1, D4 software |
-| 14–19 | A0 … A5 | software |
-| 20, 21 | D20, D21 | hardware |
-| 22–24 | JSPI | software |
-| 25–49 | JMISC | software |
-| 50–55 | LED3, LED4 | 50, 51, 52 hardware (RGB); 53–55 software |
-| 56–66 | LED matrix | software |
-| 67–69 | Reserved system pins | do not drive |
-
-`isHardwarePWM()` reports which engine backs a pin, and the `PinCapabilities` example
-prints the whole map.
-
-> The UNO Q silkscreen marks six pins with `~` (D3, D5, D6, D9, D10, D11), matching the
-> UNO R3. The board actually routes 13. Trust `isHardwarePWM()`.
 
 ## 📚 API
 
@@ -132,30 +184,7 @@ prints the whole map.
 The frame is 20 ms (50 Hz) and the default pulse range is 500–2500 µs; both are
 adjustable per `attach()`.
 
-### On-board RGB LEDs
-
-The UNO Q carries four RGB LEDs, but they are split across its two processors:
-
-| LED | Processor | Reachable from a sketch |
-|---|---|---|
-| LED1 | Qualcomm QRB2210 (Linux) | **No** — `arduino-app-cli` uses it as a status indicator |
-| LED2 | Qualcomm QRB2210 (Linux) | **No** — same |
-| LED3 | STM32U585 | **Yes** — hardware PWM |
-| LED4 | STM32U585 | **Yes** — software PWM, still fully dimmable |
-
-```cpp
-#include <UNOQ_PWMRGB.h>
-
-UNOQ_PWMRGB led3(UNOQ_PWMRGB::LED3);
-UNOQ_PWMRGB led4(UNOQ_PWMRGB::LED4);
-
-void setup() {
-  led3.setColor(255, 0, 0);       // red
-  led4.setColor(0x00FF00);        // packed 0xRRGGBB
-  led3.setChannel(UNOQ_PWMRGB::BLUE, 128);   // one channel at half
-  led4.off();
-}
-```
+### On-board RGB
 
 | Method | Description |
 |---|---|
@@ -169,57 +198,19 @@ void setup() {
 | `ledCount()` | Number of MCU-side RGB LEDs (2). |
 | `available()` | `false` if the board exposes no `builtin-led-gpios`. |
 
-The channel numbers are read from the board devicetree rather than hard-coded, so on
-the UNO Q they come out as 50/51/52 for LED3 and 53/54/55 for LED4.
-
-> Because LED4 has no timer channel, it is driven by the software PWM engine. That
-> gives it smooth dimming, which `digitalWrite()` on the same pin cannot do.
-
 ## 🧪 Examples
 
 | Example | Description |
 |---|---|
+| `PinCapabilities` | Prints which engine backs each pin. Start here. |
 | `Pins0to13_1kHz` | 1 kHz / 50 % on all of D0–D13. |
 | `AllPins1kHz` | 1 kHz / 50 % on every pin that can be driven. |
 | `PWMPins1kHz` | 1 kHz / 50 % on every hardware PWM pin. |
-| `PinCapabilities` | Prints which engine backs each of the 70 channels. |
+| `LedRGB` | Drives the on-board LED3 and LED4 through the colour wheel. |
 | `AllPinsFade` | Fades the header pins and prints the engine split. |
 | `ServoSweep` | Two servos sweeping — one on D9, one on D4. |
-| `LedRGB` | Drives the on-board LED3 and LED4 through the colour wheel. |
 | `HwDiagnostics` | Per-channel device, timer clock and routing results. |
 | `AppLabDemo` | The sketch shipped inside the App Lab app. |
-
-## 📦 Installation
-
-### Arduino IDE / arduino-cli
-
-Copy the library into your sketchbook libraries folder:
-
-```
-~/Arduino/libraries/UNOQ_PWMServoDriver/       # on the board
-%USERPROFILE%\Documents\Arduino\libraries\     # on Windows
-```
-
-### Arduino App Lab
-
-An App Lab `sketch/` folder must keep its `sketch.yaml`, and its presence switches
-`arduino-cli` into profile mode, which does not scan `~/Arduino/libraries`. The App
-therefore carries the library sources inside its own sketch folder and includes them
-with quotes:
-
-```cpp
-#include "UNOQ_PWMServoDriver.h"
-```
-
-`deploy.ps1` performs the copy and uploads both the library and the app:
-
-```powershell
-.\deploy.ps1                 # default target: arduino@192.168.18.119
-.\deploy.ps1 -Device arduino@other-host
-```
-
-Start the app with App Lab's **Run** button. `arduino-app-cli app restart` conflicts
-with App Lab ownership of the app.
 
 ## ⚠️ Notes
 
@@ -227,14 +218,12 @@ with App Lab ownership of the app.
   a per-channel frequency is not possible.
 * **All servo instances share one driver**, so attaching a servo sets the shared frame
   rate to 50 Hz. Servos and PWM at a different frequency cannot be mixed in one sketch.
-* **Software PWM resolution is 100 µs.** At 50 Hz that is 200 steps per frame; at
-  1 kHz it is 10. Use a hardware PWM pin when you need finer resolution.
+* **Software PWM resolution is 100 µs.** Use a hardware PWM pin when you need finer
+  resolution or a higher frequency with fine duty control.
 * **`setPWM()`'s `on` offset is ignored on hardware pins.** MCU timers cannot emit an
   arbitrary phase offset.
-* **Pins 67–69 are reserved** for system functions (internal SPI ready, analog switch
-  for VREF, BOOT0). Do not drive them.
-* **LED1 and LED2 cannot be driven from a sketch.** They belong to the Linux side of
-  the board; a Python app can still reach them through `Leds.set_led1_color()`.
+* **Do not drive the reserved pins** for the internal SPI ready line, the analog switch
+  for VREF, or BOOT0.
 * **The software engine runs in interrupt context.** Interrupt load grows with the
   number of distinct pulse widths, not with the number of channels.
 * `Serial` on the UNO Q is the Arduino Router's monitor. Output is only visible while
@@ -242,4 +231,4 @@ with App Lab ownership of the app.
 
 ## 📄 License
 
-MPL-2.0, matching the Arduino libraries this work derives its interfaces from.
+MPL-2.0.
