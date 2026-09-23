@@ -44,6 +44,26 @@ UNOQ_PWMServoDriver pwm;
 static const float PWM_FREQ_HZ = 1000.0f;
 static const uint16_t DUTY = UNOQ_PWM_RESOLUTION / 2; /* 2048 / 4096 = 50 % */
 
+/* The on-board RGB LED (LED3, channels 50/51/52) is timer-backed as well.
+ * Driving all three at once mixes the three primaries into white and changes
+ * how the board looks, which is just noise while probing header pins - so it
+ * is left alone by default. Set this to true to include it: it is excellent
+ * visual proof that the hardware engine really is running. */
+static const bool DRIVE_RGB_LEDS = false;
+static const uint8_t RGB_LED_FIRST = 50;
+static const uint8_t RGB_LED_LAST = 52;
+
+/** @brief True for the channels this sketch should drive. */
+static bool shouldDrive(uint16_t ch) {
+	if (!UNOQ_PWMServoDriver::isHardwarePWM((uint8_t)ch)) {
+		return false;
+	}
+	if (!DRIVE_RGB_LEDS && ch >= RGB_LED_FIRST && ch <= RGB_LED_LAST) {
+		return false;
+	}
+	return true;
+}
+
 static uint16_t drivenCount = 0;
 
 void setup() {
@@ -56,7 +76,7 @@ void setup() {
 
 	/* Claim and program every timer-backed channel. */
 	for (uint16_t ch = 0; ch < UNOQ_PWMServoDriver::channelCount(); ch++) {
-		if (!UNOQ_PWMServoDriver::isHardwarePWM((uint8_t)ch)) {
+		if (!shouldDrive(ch)) {
 			continue;
 		}
 		pwm.setPin((uint8_t)ch, DUTY);
@@ -81,13 +101,13 @@ void setup() {
 
 	Serial.print("driven     :");
 	for (uint16_t ch = 0; ch < UNOQ_PWMServoDriver::channelCount(); ch++) {
-		if (UNOQ_PWMServoDriver::isHardwarePWM((uint8_t)ch)) {
+		if (shouldDrive(ch)) {
 			Serial.print(' ');
 			Serial.print(ch);
 		}
 	}
 	Serial.println();
-	Serial.println("not driven : 0,1 (Serial)  4 (no timer)  everything else");
+	Serial.println("not driven : 0,1 (Serial)  4 (no timer)  50-52 (RGB LED)  others");
 	Serial.println();
 }
 
@@ -95,12 +115,32 @@ void loop() {
 	static uint32_t last = 0;
 	if (millis() - last >= 5000) {
 		last = millis();
-		Serial.print("alive, uptime ");
+
+		/* Count any channel the core rejected. Zero in both columns means the
+		 * timer accepted the pinmux and the frequency on every channel. */
+		uint16_t pinmuxErr = 0;
+		uint16_t pwmErr = 0;
+		for (uint16_t ch = 0; ch < UNOQ_PWMServoDriver::channelCount(); ch++) {
+			if (!shouldDrive(ch)) {
+				continue;
+			}
+			if (pwm.lastPinmuxResult((uint8_t)ch) != 0) {
+				pinmuxErr++;
+			}
+			if (pwm.lastPwmResult((uint8_t)ch) != 0) {
+				pwmErr++;
+			}
+		}
+
+		Serial.print("alive ");
 		Serial.print(millis() / 1000);
 		Serial.print(" s, ");
 		Serial.print(pwm.getPWMFreq());
 		Serial.print(" Hz on ");
 		Serial.print(drivenCount);
-		Serial.println(" hardware channels");
+		Serial.print(" channels, errors: pinctrl=");
+		Serial.print(pinmuxErr);
+		Serial.print(" setpwm=");
+		Serial.println(pwmErr);
 	}
 }
