@@ -21,3 +21,8 @@ build/
 # UNOQ_, so a glob here cannot miss a newly added file.
 applab/sketch/UNOQ_*.h
 applab/sketch/UNOQ_*.cpp
+
+# Local development tools, not part of the distributed library.
+# They stay on disk, they are just never committed.
+deploy.ps1
+keywords.txt
