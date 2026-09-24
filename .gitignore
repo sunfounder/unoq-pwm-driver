@@ -17,10 +17,10 @@ build/
 *.swp
 
 # Library sources copied into the App Lab sketch by deploy.ps1.
-# The canonical copies live in src/. Everything the library ships starts with
-# UNOQ_, so a glob here cannot miss a newly added file.
-applab/sketch/UNOQ_*.h
-applab/sketch/UNOQ_*.cpp
+# The canonical copies live in src/. Every file the library ships starts with
+# Hardware, so a glob here cannot miss a newly added file.
+applab/sketch/Hardware*.h
+applab/sketch/Hardware*.cpp
 
 # Local development tools, not part of the distributed library.
 # They stay on disk, they are just never committed.

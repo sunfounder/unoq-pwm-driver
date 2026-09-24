@@ -1,44 +1,52 @@
 /*
-  ServoSweep - two servos sweeping in opposite directions.
+  ServoSweep
 
-  Servo A sits on D9, which has a hardware timer channel.
-  Servo B sits on D4, which has no timer at all and is therefore driven by the
-  software engine.  Both are commanded through the very same API.
+  Sweeps two servos in opposite directions: one on a pin with a hardware timer
+  channel, one on a pin with no timer at all. Both use the same API, which is
+  the point of the library - the sketch never has to know which engine backs
+  which pin.
 
-  Unlike the classic Servo library there is no cap on the number of attached
-  servos, because a pin is only ever limited by the engine that backs it.
+  Circuit: servo signal wires to pin 9 and pin 4, plus power and ground.
+  Servos draw a lot of current, so use a separate 5 V supply rather than the
+  board's regulator.
+
+  This example code is in the public domain.
 */
 
-#include <UNOQ_PWMServo.h>
+#include <HardwareServo.h>
 
-UNOQ_PWMServo servoA;
-UNOQ_PWMServo servoB;
+HardwareServo servoA; /* on a hardware timer pin  */
+HardwareServo servoB; /* on a software PWM pin    */
+
+const int PIN_A = 9; /* D9 has a timer channel */
+const int PIN_B = 4; /* D4 has none            */
 
 void setup() {
 	Serial.begin(115200);
-	while (!Serial) {
-		;
-	}
 
-	servoA.attach(9);
-	servoB.attach(4);
+	servoA.attach(PIN_A);
+	servoB.attach(PIN_B);
 
-	Serial.println("UNOQ_PWMServo - ServoSweep");
-	Serial.print("D9 hardware PWM: ");
-	Serial.println(UNOQ_PWMServoDriver::isHardwarePWM(9) ? "yes" : "no");
-	Serial.print("D4 hardware PWM: ");
-	Serial.println(UNOQ_PWMServoDriver::isHardwarePWM(4) ? "yes" : "no");
+	Serial.println("ServoSweep");
+	Serial.print("pin ");
+	Serial.print(PIN_A);
+	Serial.print(": ");
+	Serial.println(analogWritePinFrequency(PIN_A), 1);
+	Serial.print("pin ");
+	Serial.print(PIN_B);
+	Serial.print(": ");
+	Serial.println(analogWritePinFrequency(PIN_B), 1);
 }
 
 void loop() {
-	for (int angle = 0; angle <= 180; angle++) {
+	for (int angle = 0; angle <= 180; angle += 2) {
 		servoA.write(angle);
 		servoB.write(180 - angle);
-		delay(15);
+		delay(20);
 	}
-	for (int angle = 180; angle >= 0; angle--) {
+	for (int angle = 180; angle >= 0; angle -= 2) {
 		servoA.write(angle);
 		servoB.write(180 - angle);
-		delay(15);
+		delay(20);
 	}
 }
